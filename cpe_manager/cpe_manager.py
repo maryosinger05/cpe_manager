@@ -1,6 +1,6 @@
 from typing import Optional
-from cpe_manager.models.base import CPE_HTTP_Controller
-from cpe_manager.models import vsol
+from .models.base import CPE_HTTP_Controller
+from .models import vsol
 
 CONTROLLERS = {
     'vsol_v2802dac': vsol._2802dac.Controller
