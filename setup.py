@@ -6,7 +6,7 @@ setup(name='cpe_manager',
       author='Rafael Carvallo',
       author_email='rafael.carvalloh@gmail.com',
       url='',
-      packages=['cpe_manager'],
+      packages=['cpe_manager', 'cpe_manager.models'],
       install_requires=[
        'requests',
        'beautifulsoup4',
