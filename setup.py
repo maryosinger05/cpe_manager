@@ -8,8 +8,8 @@ setup(name='cpe_manager',
       url='',
       packages=['cpe_manager'],
       install_requires=[
-       '<requests>',
-       '<beautifulsoup4>',
-       '<selenium>',
+       'requests',
+       'beautifulsoup4',
+       'selenium',
       ]
      )
