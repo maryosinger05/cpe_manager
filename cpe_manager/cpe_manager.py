@@ -1,5 +1,5 @@
 from typing import Optional
-from http_cpe_manager.models.base import CPE_HTTP_Controller
+from cpe_manager.models.base import CPE_HTTP_Controller
 from cpe_manager.models import vsol
 
 CONTROLLERS = {
