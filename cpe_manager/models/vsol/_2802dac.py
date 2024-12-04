@@ -69,6 +69,7 @@ class Controller(CPE_HTTP_Controller):
                 
                 if (login.status_code == self.LOGIN_SUCCESS_CODE):
                     self.Loged_In = True
+                    return(Return_Codes.SUCCESS,)
                 else:
                     return(Return_Codes.ERROR, f"cpe: {self.CPE_ADDRESS} - msg: {login.text}")
             else:
