@@ -4,10 +4,11 @@ from selenium import webdriver
 import re
 import requests
 from bs4 import BeautifulSoup
-from cpe_manager.models.cpe_base import CPE_HTTP_Controller, Wireless_Client, logged_in, DHCP_Client
+from cpe_manager.models.base import CPE_HTTP_Controller, Wireless_Client, logged_in, DHCP_Client
 
 class VSOL_ACZ(CPE_HTTP_Controller):
     """ Ha sido probado con V624, hardare V1.0, firmware VSOL-V2.1.0B04-220608"""
+    # ------------ URLs ----------------
     LOGIN_URL = "http://{cpe_address}/boaform/admin/formLogin"
     LOGOUT_URL = "http://{cpe_address}/boaform/admin/formLogout"
     LOGIN_SUCCESS_CODE = 302
