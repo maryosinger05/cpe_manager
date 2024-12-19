@@ -11,7 +11,13 @@ class Return_Codes(Enum):
 
 class Wireless_Client(TypedDict):
     device_mac: str
-    rssi_dbm: str 
+    rssi_dbm: str
+    #estas variables son de la ONU acz 
+    devname: str
+    macAddr: str
+    ipAddr: str
+    liveTime: Optional[str]
+    #----------------------------------
     power_saving: Optional[str]
     send_rate_mbps: Optional[int]
     packets_send: Optional[int]
