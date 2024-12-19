@@ -99,3 +99,31 @@ class VSOL_ACZ(CPE_HTTP_Controller):
             parsed_client_list.append(parsed_client)
 
         return parsed_client_list
+
+    @logged_in
+    def get_wifi_clients(self) -> Optional[List[Wireless_Client]]:
+        client_list = []
+        
+        wifi_clients = requests.get(f"https://{self.CPE_ADDRESS}/Status_Connected_User.html")
+        if wifi_clients.status_code != 200:
+            print(f"Hubo un error con la peticion al CPE {self.CPE_ADDRESS}, codigo: {wifi_clients.status_code}, response: {wifi_clients.text}")
+            return
+        clients_soup = BeautifulSoup(wifi_clients.text, 'html.parser')  
+
+        #se busca en la tabla de los clientes activos en DHCP
+        intro_title = clients_soup.find('h6', class_='m-0 font-weight-bold text-primary lang', text='Active DHCP Clients')
+        table = intro_title.find_next('div', class_='table-responsive').find('table')
+
+        if table:
+            rows = table.find_all('tr')[1:]
+            for rows in rows:
+                cols = rows.find_all('td')
+                cols = [items.get_text(strip = True) for items in cols]
+                if cols:
+                    client_list.append({
+                            "devname": cols[0],
+                            "macAddr": cols[1],
+                            "ipAddr": cols[2],
+                            "liveTime": cols[3],
+                        })
+        return client_list
