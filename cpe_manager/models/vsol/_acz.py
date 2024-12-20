@@ -4,10 +4,11 @@ from selenium import webdriver
 import re
 import requests
 from bs4 import BeautifulSoup
-from cpe_manager.models.cpe_base import CPE_HTTP_Controller, Wireless_Client, logged_in, DHCP_Client
+from cpe_manager.models.base import CPE_HTTP_Controller, Wireless_Client, logged_in, DHCP_Client
 
 class VSOL_ACZ(CPE_HTTP_Controller):
     """ Ha sido probado con V624, hardare V1.0, firmware VSOL-V2.1.0B04-220608"""
+    # ------------ URLs ----------------
     LOGIN_URL = "http://{cpe_address}/boaform/admin/formLogin"
     LOGOUT_URL = "http://{cpe_address}/boaform/admin/formLogout"
     LOGIN_SUCCESS_CODE = 302
@@ -98,3 +99,31 @@ class VSOL_ACZ(CPE_HTTP_Controller):
             parsed_client_list.append(parsed_client)
 
         return parsed_client_list
+
+    @logged_in
+    def get_wifi_clients(self) -> Optional[List[Wireless_Client]]:
+        client_list = []
+        
+        wifi_clients = requests.get(f"https://{self.CPE_ADDRESS}/Status_Connected_User.html")
+        if wifi_clients.status_code != 200:
+            print(f"Hubo un error con la peticion al CPE {self.CPE_ADDRESS}, codigo: {wifi_clients.status_code}, response: {wifi_clients.text}")
+            return
+        clients_soup = BeautifulSoup(wifi_clients.text, 'html.parser')  
+
+        #se busca en la tabla de los clientes activos en DHCP
+        intro_title = clients_soup.find('h6', class_='m-0 font-weight-bold text-primary lang', text='Active DHCP Clients')
+        table = intro_title.find_next('div', class_='table-responsive').find('table')
+
+        if table:
+            rows = table.find_all('tr')[1:]
+            for rows in rows:
+                cols = rows.find_all('td')
+                cols = [items.get_text(strip = True) for items in cols]
+                if cols:
+                    client_list.append({
+                            "devname": cols[0],
+                            "macAddr": cols[1],
+                            "ipAddr": cols[2],
+                            "liveTime": cols[3],
+                        })
+        return client_list
