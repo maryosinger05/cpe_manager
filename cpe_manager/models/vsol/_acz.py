@@ -1,10 +1,10 @@
-from typing import Optional, List, TypedDict
+from typing import Optional, List, Tuple, TypedDict
 from ipaddress import IPv4Address
 from selenium import webdriver
 import re
 import requests
 from bs4 import BeautifulSoup
-from cpe_manager.models.base import CPE_HTTP_Controller, Wireless_Client, logged_in, DHCP_Client
+from cpe_manager.models.base import CPE_HTTP_Controller, Wireless_Client, logged_in, DHCP_Client, Return_Codes, change_wifi_ssid
 
 class VSOL_ACZ(CPE_HTTP_Controller):
     """ Ha sido probado con V624, hardare V1.0, firmware VSOL-V2.1.0B04-220608"""
@@ -15,7 +15,8 @@ class VSOL_ACZ(CPE_HTTP_Controller):
     LOGOUT_SUCCESS_CODE = 301
     CSRF_REQUEST_URL = "http://{cpe_address}/boaform/getASPdata/FMask"
     PASSWORD_CHANGE_URL = "http://{cpe_address}/boaform/getASPdata/new_formPasswordSetup"
-    GET_DHCP_CLIENTS_URL = 'http://{cpe_address}/boaform/getASPdata/E8BDhcpClientList' 
+    GET_DHCP_CLIENTS_URL = 'http://{cpe_address}/boaform/getASPdata/E8BDhcpClientList'
+    CHANGE_WIFI_SSID_URL = "http://{cpe_address}/boaform/admin/formWlanSetup"
 
     def login(self) -> None:
         # En la version que se probo no se mantiene la sesion mediante cookies, sino mediante una IP... no es necesario generar una sesion con requests
@@ -127,3 +128,47 @@ class VSOL_ACZ(CPE_HTTP_Controller):
                             "liveTime": cols[3],
                         })
         return client_list
+    
+    #Llama los códigos csrfMask
+    def _get_csrf_Mask(self) -> Optional[str]:
+            token_call = requests.get(f"http://{self.CPE_ADDRESS}/Management_User.html")
+            token_soup = BeautifulSoup(token_call.text, "html.parser")
+            csrfMask = token_soup.find('input', {'name': 'csrfMask'}).get('value')
+            return csrfMask
+
+    #Intento de cambio de ssid
+    WIFI2GHZ_IDX = 1
+    WIFI5GHZ_IDX = 0
+    @logged_in
+    def change_wifi_ssid(self, new_ssid)  -> Tuple[int, Optional[str]]:
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        payload = {
+            "ssid": new_ssid,
+            "wlan_idx": "",
+            "csrfMask": ""
+        }
+        try:
+            payload["csrfMask"] = self._get_csrf_Mask()
+            payload["wlan_idx"] = self.WIFI2GHZ_IDX
+            ssid_change_2ghz = requests.post(self.CHANGE_WIFI_SSID_URL.format(cpe_address = self.CPE_ADDRESS),
+                                    data = payload, allow_redirects=False,
+                                    headers = headers)
+            
+            payload["csrftoken"] = self._get_csrf_Mask()
+            payload["wlan_idx"] = self.WIFI5GHZ_IDX
+            ssid_change_5ghz = requests.post(self.CHANGE_WIFI_SSID_URL.format(cpe_address = self.CPE_ADDRESS),
+                                    data = payload, allow_redirects=False,
+                                    headers = headers)
+            
+            if ssid_change_2ghz.status_code == 200 and ssid_change_5ghz.status_code == 200:
+                ssid_change_2ghz_soup = BeautifulSoup(ssid_change_2ghz.text, 'html.parser')
+                ssid_change_5ghz_soup = BeautifulSoup(ssid_change_5ghz.text, 'html.parser')
+                change_2ghz_result = ssid_change_2ghz_soup.find('h6').text
+                change_5ghz_result = ssid_change_5ghz_soup.find('h6').text
+
+                if change_2ghz_result == change_5ghz_result == 'Change setting successfully!':
+                    return (Return_Codes.SUCCESS)
+            
+            return (Return_Codes.ERROR, f"2ghz: {ssid_change_2ghz.status_code} - 5ghz: {ssid_change_5ghz.status_code}")
+        except Exception as e:
+            return (Return_Codes.EXCEPTION, e)
